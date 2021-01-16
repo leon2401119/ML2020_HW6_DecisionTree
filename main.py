@@ -1,6 +1,7 @@
 import os
 import math
 import copy
+import random
 
 class decision_tree:
     def __init__(self, data):   # data = [data1,data2,...], data1 = [[feature],label]
@@ -129,13 +130,102 @@ with open('hw6_test.dat','r') as f:
         test_data.append([feature,label])
 
 
-D = decision_tree(train_data)
+# Problem 14
+# D = decision_tree(train_data)
+# error = 0
+# total = 0
+# for test in test_data:
+#     prediction = D.eval(test[0])
+#     total += 1
+#     if prediction != test[1]:
+#         error += 1
+# print(error/total)
+
+
+
+# Problem 15~18
+forest = []
+iterations = 2000
+
+
+for i in range(iterations):
+    if i%1 == 0:
+        print(i)
+    sampled_data = []
+    sampled_id = []
+    for j in range(int(len(train_data)/2)):
+        id = random.randint(0,len(train_data)-1)
+        sampled_data.append(train_data[id])
+        sampled_id.append(id)
+
+    D = decision_tree(sampled_data)
+    forest.append((D,sampled_id))
+
+
+total_eout = 0
+for tree,_ in forest:
+    error = 0
+    total = 0
+    for test in test_data:
+        prediction = tree.eval(test[0])
+        total += 1
+        if prediction != test[1]:
+            error += 1
+    total_eout += error/total
+
+print(total_eout/iterations)
+
+
+error = 0
+total = 0
+for train in train_data:
+    vote = [0,0]
+    for tree,_ in forest:
+        if tree.eval(train[0]) == 1:
+            vote[1] += 1
+        else:
+            vote[0] += 1
+    if (vote[1]-vote[0])*train[1] < 0:    # incorrect prediction
+        error += 1
+    total += 1
+
+print(f'ein = {error/total}')
+
 error = 0
 total = 0
 for test in test_data:
-    prediction = D.eval(test[0])
-    total += 1
-    if prediction != test[1]:
+    vote = [0,0]
+    for tree,_ in forest:
+        if tree.eval(test[0]) == 1:
+            vote[1] += 1
+        else:
+            vote[0] += 1
+    if (vote[1]-vote[0])*test[1] < 0:    # incorrect prediction
         error += 1
+    total += 1
 
-print(error/total)
+print(f'eout = {error/total}')
+
+
+error = 0
+for i,train in enumerate(train_data):
+    forest_gminus = []
+    for tree,sampled_id in forest:
+        if i not in sampled_id:
+            forest_gminus.append(tree)
+
+    if len(forest_gminus) != 0:
+        vote = [0,0]
+        for tree in forest_gminus:
+            if tree.eval(train[0]) == 1:
+                vote[1] += 1
+            else:
+                vote[0] += 1
+        if (vote[1]-vote[0])*train[1] < 0:    # incorrect prediction
+            error += 1
+
+    else:
+        error += 1 if train[1]>0 else 0
+
+
+print(f'eoob = {error/len(train_data)}')
